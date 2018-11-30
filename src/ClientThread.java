@@ -10,6 +10,7 @@ import java.util.Base64;
 public class ClientThread implements Runnable {
 
     private Socket socket;
+    private String username;
 
     ClientThread(Socket socket) {
         super();
@@ -19,13 +20,30 @@ public class ClientThread implements Runnable {
     @Override
     public void run() {
         System.out.println("Hello fellow clients :)");
+        InputStream is = null;
+        OutputStream os = null;
         try {
-            InputStream is = socket.getInputStream();
-
-            OutputStream os = socket.getOutputStream();
-            connectToClient(is, os);
+            is = socket.getInputStream();
+            os = socket.getOutputStream();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+        boolean connected = connectToClient(is, os);
+        boolean pingPong = false;
+//        if (connected) {
+//            pingPong = startPingThread();
+//        }
+        while(connected){
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+            String line = "";
+            try {
+                line = reader.readLine();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            String message = line.replace("BCST ", "");
+            System.out.println(message);
+
         }
     }
 
@@ -52,6 +70,7 @@ public class ClientThread implements Runnable {
         byte[] bytesOfMessage = new byte[0];
         if (line != null) {
             String username = line.replace("HELO ", "");
+            this.username = username;
             System.out.println(username);
 
             try {
@@ -77,5 +96,20 @@ public class ClientThread implements Runnable {
         writer.flush();
 
         return true;
+    }
+
+    public boolean startPingThread() {
+        PingThread ping = new PingThread(socket);
+        Thread p1 = new Thread(ping);
+        p1.start();
+        return true;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 }
