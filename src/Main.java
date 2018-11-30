@@ -1,7 +1,4 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -27,9 +24,12 @@ public class Main {
                     System.out.println("not here");
                     // Your code here:
                     // TODO: Start a message processing thread for each connecting client.
-                    ClientThread client = new ClientThread();
+                    ClientThread client = new ClientThread(socket);
                     Thread t1 = new Thread(client);
                     t1.start();
+//                    PingThread ping = new PingThread(socket);
+//                    Thread p1 = new Thread(ping);
+//                    p1.start();
                     // TODO: Start a ping thread for each connecting client.
                 }
 
