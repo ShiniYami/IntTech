@@ -14,15 +14,24 @@ public class Main {
     }
     public void run(){
         {
+
+
+
             try {
                 serverSocket = new ServerSocket(port);
-                Socket clientSocket = serverSocket.accept();
                 System.out.println("Connected");
-                PrintWriter out =
-                        new PrintWriter(clientSocket.getOutputStream(), true);
-                BufferedReader in = new BufferedReader(
-                        new InputStreamReader(clientSocket.getInputStream()));
-                clientSocket = serverSocket.accept();
+                while (true) {
+                    System.out.println("Looperino");
+                    // Wait for an incoming client-connection request (blocking).
+                    Socket socket = serverSocket.accept();
+                    System.out.println("not here");
+                    // Your code here:
+                    // TODO: Start a message processing thread for each connecting client.
+                    ClientThread client = new ClientThread();
+                    Thread t1 = new Thread(client);
+                    t1.start();
+                    // TODO: Start a ping thread for each connecting client.
+                }
 
             } catch (IOException e) {
                 e.printStackTrace();
