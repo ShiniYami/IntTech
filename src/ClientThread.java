@@ -30,9 +30,9 @@ public class ClientThread implements Runnable {
         }
         boolean connected = connectToClient(is, os);
         boolean pingPong = false;
-//        if (connected) {
-//            pingPong = startPingThread();
-//        }
+        if (connected) {
+            pingPong = startPingThread();
+        }
         while(connected){
             BufferedReader reader = new BufferedReader(new InputStreamReader(is));
             String line = "";

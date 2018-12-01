@@ -20,7 +20,7 @@ public class PingThread implements Runnable {
 
             // Send message using the print writer.
             PrintWriter writer = new PrintWriter(os);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+
 
             while (connected) {
                 writer.println("PING");
@@ -29,6 +29,7 @@ public class PingThread implements Runnable {
                 writer.flush();
 
                 // Block thread until socket input has been read.
+                BufferedReader reader = new BufferedReader(new InputStreamReader(is));
                 String line = reader.readLine();
 
                 if (line.equals("PONG")) {
