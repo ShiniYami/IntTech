@@ -75,6 +75,7 @@ public class ClientThread implements Runnable {
 
             try {
                 bytesOfMessage = line.getBytes("UTF-8");
+                System.out.println("Message size: "+bytesOfMessage + " bytes");
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
