@@ -1,10 +1,12 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 
 public class Main {
-    private int port = 1337;
+    private static int port = 1337;
     private ServerSocket serverSocket;
+    private ArrayList<ClientThread> users = new ArrayList<>();
 
     public static void main(String[] args) {
         new Main().run();
@@ -29,13 +31,35 @@ public class Main {
             System.out.println("not here");
             // Your code here:
             // TODO: Start a message processing thread for each connecting client.
-            ClientThread client = new ClientThread(socket);
+            ClientThread client = new ClientThread(this, socket);
+            users.add(client);
             Thread t1 = new Thread(client);
             t1.start();
             // TODO: Start a ping thread for each connecting client.
         }
 
 
+    }
+
+    void broadcastMessage(String username, String message){
+        System.out.println(username + ": " + message);
+        for (ClientThread user : users) {
+            if(!user.getUsername().equals(username)) {
+                user.giveMessage("BCST " + username + ": " + message);
+            }
+        }
+    }
+
+    boolean isUniqueUsername(String username) {
+        boolean unique = true;
+        for (ClientThread user : users) {
+            if(user.getUsername() != null) {
+                if (user.getUsername().equals(username)) {
+                    unique = false;
+                }
+            }
+        }
+        return unique;
     }
 
 }

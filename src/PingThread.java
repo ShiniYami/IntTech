@@ -4,49 +4,48 @@ import java.net.Socket;
 public class PingThread implements Runnable {
 
     private Socket socket;
+    private ClientThread parent;
 
-    PingThread(Socket socket) {
+    PingThread(ClientThread parent, Socket socket) {
         super();
         this.socket = socket;
+        this.parent = parent;
     }
 
     @Override
     public void run() {
-        boolean connected = true;
+        longWait();
+    }
 
+    void longWait() {
         try {
-            InputStream is = socket.getInputStream();
-            OutputStream os = socket.getOutputStream();
+            Thread.sleep(60000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        try {
+            if(parent.isConnected()) {
+                parent.setPingPong(false);
+                OutputStream os = socket.getOutputStream();
 
-            // Send message using the print writer.
-            PrintWriter writer = new PrintWriter(os);
+                // Send message using the print writer.
+                PrintWriter writer = new PrintWriter(os);
 
-
-            while (connected) {
                 writer.println("PING");
-                System.out.println("PING");
                 // The flush method sends the messages from the print writer buffer to client.
                 writer.flush();
-
-                // Block thread until socket input has been read.
-                BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-                String line = reader.readLine();
-
-                if (line.equals("PONG")) {
-                    System.out.println("PONG");
-                } else {
-                    connected = false;
-                }
-
                 try {
-                    Thread.sleep(2000);
+                    Thread.sleep(3000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
+                if (!parent.isPingPong()) {
+                    parent.setConnected(false);
+                }
             }
+
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 }

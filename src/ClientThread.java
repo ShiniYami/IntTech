@@ -11,29 +11,34 @@ public class ClientThread implements Runnable {
 
     private Socket socket;
     private String username;
+    private Main parent;
+    private boolean connected = false;
+    private boolean pingPong = false;
+    InputStream is = null;
+    OutputStream os = null;
 
-    ClientThread(Socket socket) {
+    ClientThread(Main parent, Socket socket) {
         super();
         this.socket = socket;
+        this.parent = parent;
     }
 
     @Override
     public void run() {
         System.out.println("Hello fellow clients :)");
-        InputStream is = null;
-        OutputStream os = null;
+
         try {
             is = socket.getInputStream();
             os = socket.getOutputStream();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        boolean connected = connectToClient(is, os);
-        boolean pingPong = false;
+        connected = connectToClient();
+
         if (connected) {
             pingPong = startPingThread();
         }
-        while(connected){
+        while (connected) {
             BufferedReader reader = new BufferedReader(new InputStreamReader(is));
             String line = "";
             try {
@@ -41,13 +46,26 @@ public class ClientThread implements Runnable {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            String message = line.replace("BCST ", "");
-            System.out.println(message);
-
+            if (line.startsWith("BCST")) {
+                String message = line.replace("BCST ", "");
+                parent.broadcastMessage(username,message);
+            } else if (line.startsWith("PONG")) {
+                pingPong = true;
+                startPingThread();
+            } else if (line.startsWith("QUIT")) {
+                System.out.println(username + " disconnected.");
+                connected = false;
+            }
+        }
+        try {
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
-    private boolean connectToClient(InputStream is, OutputStream os) {
+    private boolean connectToClient() {
+        boolean connected = false;
 
         // Send message using the print writer.
         PrintWriter writer = new PrintWriter(os);
@@ -69,38 +87,48 @@ public class ClientThread implements Runnable {
         System.out.println(line);
         byte[] bytesOfMessage = new byte[0];
         if (line != null) {
+            String response;
             String username = line.replace("HELO ", "");
-            this.username = username;
-            System.out.println(username);
+            if (parent.isUniqueUsername(username)) {
+                this.username = username;
+                System.out.println(username);
 
-            try {
-                bytesOfMessage = line.getBytes("UTF-8");
-                System.out.println("Message size: "+bytesOfMessage + " bytes");
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
+                try {
+                    bytesOfMessage = line.getBytes("UTF-8");
+                    System.out.println("Message size: " + bytesOfMessage + " bytes");
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+
+                String encoded = "";
+                try {
+                    MessageDigest md = MessageDigest.getInstance("MD5");
+                    byte[] MD5Bytes = md.digest(bytesOfMessage);
+                    encoded = Base64.getEncoder().encodeToString(MD5Bytes);
+                } catch (NoSuchAlgorithmException e) {
+                    e.printStackTrace();
+                }
+                //end encoding
+
+                response = "+OK " + encoded;
+                connected = true;
+            } else {
+                response = "-ERR user already logged in";
+                this.connected = false;
             }
-        }
-        String encoded = "";
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] MD5Bytes = md.digest(bytesOfMessage);
-            encoded = Base64.getEncoder().encodeToString(MD5Bytes);
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-        //end encoding
 
-        String response = "+OK " + encoded;
-        writer.println(response);
-        System.out.println(response);
-        // The flush method sends the messages from the print writer buffer to client.
-        writer.flush();
+            writer.println(response);
+            System.out.println(response);
+            // The flush method sends the messages from the print writer buffer to client.
+            writer.flush();
+        }
 
-        return true;
+
+        return connected;
     }
 
     public boolean startPingThread() {
-        PingThread ping = new PingThread(socket);
+        PingThread ping = new PingThread(this, socket);
         Thread p1 = new Thread(ping);
         p1.start();
         return true;
@@ -110,7 +138,25 @@ public class ClientThread implements Runnable {
         return username;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public boolean isPingPong() {
+        return pingPong;
+    }
+
+    public void setPingPong(boolean pingPong) {
+        this.pingPong = pingPong;
+    }
+
+    public void setConnected(boolean connected) {
+        this.connected = connected;
+    }
+
+    public boolean isConnected() {
+        return connected;
+    }
+
+    public void giveMessage(String message){
+        PrintWriter writer = new PrintWriter(os);
+        writer.println(message);
+        writer.flush();
     }
 }
