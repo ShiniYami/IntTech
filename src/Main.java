@@ -41,11 +41,13 @@ public class Main {
 
     }
 
-    void broadcastMessage(String username, String message){
+    void broadcastMessage(String username, String message) {
         System.out.println(username + ": " + message);
         for (ClientThread user : users) {
-            if(!user.getUsername().equals(username)) {
-                user.giveMessage("BCST " + username + ": " + message);
+            if (user.getUsername() != null) {
+                if (!user.getUsername().equals(username)) {
+                    user.giveMessage("BCST " + username + ": " + message);
+                }
             }
         }
     }
@@ -53,7 +55,7 @@ public class Main {
     boolean isUniqueUsername(String username) {
         boolean unique = true;
         for (ClientThread user : users) {
-            if(user.getUsername() != null) {
+            if (user.getUsername() != null) {
                 if (user.getUsername().equals(username)) {
                     unique = false;
                 }
@@ -62,4 +64,7 @@ public class Main {
         return unique;
     }
 
+    public ArrayList<ClientThread> getUsers() {
+        return users;
+    }
 }

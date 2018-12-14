@@ -38,6 +38,7 @@ public class ClientThread implements Runnable {
         if (connected) {
             pingPong = startPingThread();
         }
+        PrintWriter writer = new PrintWriter(os);
         while (connected) {
             BufferedReader reader = new BufferedReader(new InputStreamReader(is));
             String line = "";
@@ -54,6 +55,8 @@ public class ClientThread implements Runnable {
                 startPingThread();
             } else if (line.startsWith("QUIT")) {
                 System.out.println(username + " disconnected.");
+                writer.println("+OK Goodbye");
+                writer.flush();
                 connected = false;
             }
         }
@@ -62,6 +65,7 @@ public class ClientThread implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        parent.getUsers().remove(this);
     }
 
     private boolean connectToClient() {
@@ -89,31 +93,37 @@ public class ClientThread implements Runnable {
         if (line != null) {
             String response;
             String username = line.replace("HELO ", "");
-            if (parent.isUniqueUsername(username)) {
-                this.username = username;
-                System.out.println(username);
+            if(username.matches("^[a-zA-Z0-9_]*$")) {
+                if (parent.isUniqueUsername(username)) {
+                    this.username = username;
+                    System.out.println(username);
 
-                try {
-                    bytesOfMessage = line.getBytes("UTF-8");
-                    System.out.println("Message size: " + bytesOfMessage + " bytes");
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
+                    try {
+                        bytesOfMessage = line.getBytes("UTF-8");
+                        System.out.println("Message size: " + bytesOfMessage + " bytes");
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
+
+                    String encoded = "";
+                    try {
+                        MessageDigest md = MessageDigest.getInstance("MD5");
+                        byte[] MD5Bytes = md.digest(bytesOfMessage);
+                        encoded = Base64.getEncoder().encodeToString(MD5Bytes);
+                    } catch (NoSuchAlgorithmException e) {
+                        e.printStackTrace();
+                    }
+                    //end encoding
+
+                    response = "+OK " + encoded;
+                    connected = true;
+                } else {
+                    response = "-ERR user already logged in";
+                    this.connected = false;
                 }
-
-                String encoded = "";
-                try {
-                    MessageDigest md = MessageDigest.getInstance("MD5");
-                    byte[] MD5Bytes = md.digest(bytesOfMessage);
-                    encoded = Base64.getEncoder().encodeToString(MD5Bytes);
-                } catch (NoSuchAlgorithmException e) {
-                    e.printStackTrace();
-                }
-                //end encoding
-
-                response = "+OK " + encoded;
-                connected = true;
-            } else {
-                response = "-ERR user already logged in";
+            }
+            else{
+                response = "-ERR username has an invalid format";
                 this.connected = false;
             }
 

@@ -40,6 +40,11 @@ public class PingThread implements Runnable {
                     e.printStackTrace();
                 }
                 if (!parent.isPingPong()) {
+                    String response = "DSCN Pong timeout";
+                    writer.println(response);
+                    System.out.println(response);
+                    // The flush method sends the messages from the print writer buffer to client.
+                    writer.flush();
                     parent.setConnected(false);
                 }
             }
