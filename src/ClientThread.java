@@ -50,6 +50,15 @@ public class ClientThread implements Runnable {
             if (line.startsWith("BCST")) {
                 String message = line.replace("BCST ", "");
                 parent.broadcastMessage(username,message);
+            } else if (line.startsWith("WISP")){
+                String message = line.replace("WISP ", "");
+                String[] splitMessage = message.split(" ");
+                String targetUsername = splitMessage[0];
+                message = message.replace(targetUsername + " ", "");
+                boolean succeeded = parent.whisperMessage(username,message, targetUsername);
+                if(!succeeded){
+                    sendErrorMessage(writer, "Username not found");
+                }
             } else if (line.startsWith("PONG")) {
                 pingPong = true;
                 startPingThread();
@@ -66,6 +75,11 @@ public class ClientThread implements Runnable {
             e.printStackTrace();
         }
         parent.getUsers().remove(this);
+    }
+
+    private void sendErrorMessage(PrintWriter writer, String message) {
+        writer.println("-ERR " + message);
+        writer.flush();
     }
 
     private boolean connectToClient() {

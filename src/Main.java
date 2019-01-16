@@ -42,7 +42,6 @@ public class Main {
     }
 
     void broadcastMessage(String username, String message) {
-        System.out.println(username + ": " + message);
         for (ClientThread user : users) {
             if (user.getUsername() != null) {
                 if (!user.getUsername().equals(username)) {
@@ -50,6 +49,16 @@ public class Main {
                 }
             }
         }
+    }
+
+    boolean whisperMessage(String username, String message, String targetUsername){
+        for(ClientThread user : users){
+            if(user.getUsername().equals(targetUsername)){
+                user.giveMessage("WISP " + username +"(to: "+ targetUsername + "): " + message);
+                return true;
+            }
+        }
+        return false;
     }
 
     boolean isUniqueUsername(String username) {
