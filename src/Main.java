@@ -73,6 +73,14 @@ public class Main {
         return unique;
     }
 
+    ArrayList<String> getUsernames(){
+        ArrayList<String> usernames = new ArrayList<>();
+        for (ClientThread user : users) {
+            usernames.add(user.getUsername());
+        }
+        return usernames;
+    }
+
     public ArrayList<ClientThread> getUsers() {
         return users;
     }

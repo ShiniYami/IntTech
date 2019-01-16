@@ -4,6 +4,7 @@ import java.io.*;
 import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Base64;
 
 
@@ -59,6 +60,14 @@ public class ClientThread implements Runnable {
                 if(!succeeded){
                     sendErrorMessage(writer, "Username not found");
                 }
+            } else if (line.startsWith("USRS")) {
+                ArrayList<String> usernames = parent.getUsernames();
+                String message = "";
+                for (String username : usernames) {
+                    message = message + username + " ";
+                }
+                writer.println("USRS " + message);
+                writer.flush();
             } else if (line.startsWith("PONG")) {
                 pingPong = true;
                 startPingThread();
