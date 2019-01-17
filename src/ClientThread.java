@@ -72,7 +72,7 @@ public class ClientThread implements Runnable {
                 String[] split = line.split(" ");
                 String groupname = split[1];
 
-                parent.createGroup(groupname, username);
+                parent.createGroup(groupname, this);
             } else if (line.startsWith("GRPS")){
                 ArrayList<String> groups = parent.getGroupNames();
                 String message = "";
@@ -84,17 +84,27 @@ public class ClientThread implements Runnable {
             } else if (line.startsWith("JOIN ")){
                 String[] split = line.split(" ");
                 String groupname = split[1];
-                String returnMessage = parent.joinGroup(groupname, username);
+                String returnMessage = parent.joinGroup(groupname, this);
                 writer.println(returnMessage);
                 writer.flush();
             } else if (line.startsWith("GRP")){
                 String[] split = line.split(" ");
                 String groupname = split[1];
                 String message = line.replace("GRP " +groupname + " ", "");
-                parent.sendGroupMessage(groupname, username, message);
+                parent.sendGroupMessage(groupname, this, message);
             } else if (line.startsWith("LEVE ")) {
                 String[] split = line.split(" ");
                 String groupname = split[1];
+                String returnMessage = parent.leaveGroup(groupname, this);
+                writer.println(returnMessage);
+                writer.flush();
+            } else if (line.startsWith("KICK ")){
+                String[] split = line.split(" ");
+                String targetUsername = split[1];
+                String groupname = split[2];
+                String returnMessage = parent.kickFromGroup(groupname, targetUsername, this);
+                writer.println(returnMessage);
+                writer.flush();
             } else if (line.startsWith("PONG")) {
                 pingPong = true;
                 startPingThread();

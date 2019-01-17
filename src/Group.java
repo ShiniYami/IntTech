@@ -3,10 +3,10 @@ import java.util.ArrayList;
 public class Group {
 
     private String groupname;
-    private String groupHost;
-    private ArrayList<String> groupMembers = new ArrayList<>();
+    private ClientThread groupHost;
+    private ArrayList<ClientThread> groupMembers = new ArrayList<>();
 
-    Group(String groupname, String groupHost){
+    Group(String groupname, ClientThread groupHost){
         this.groupname = groupname;
         this.groupHost = groupHost;
         groupMembers.add(groupHost);
@@ -16,15 +16,19 @@ public class Group {
         return groupname;
     }
 
-    public String getGroupHost() {
+    public ClientThread getGroupHost() {
         return groupHost;
     }
 
-    public ArrayList<String> getGroupMembers() {
+    public ArrayList<ClientThread> getGroupMembers() {
         return groupMembers;
     }
 
-    public void addGroupMember(String groupmember) {
+    public void addGroupMember(ClientThread groupmember) {
         this.groupMembers.add(groupmember);
+    }
+
+    public void removeGroupMember(ClientThread Groupmember){
+        this.groupMembers.remove(Groupmember);
     }
 }

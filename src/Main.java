@@ -74,8 +74,8 @@ public class Main {
         return unique;
     }
 
-    public void createGroup(String groupname, String username) {
-        Group group = new Group(groupname, username);
+    public void createGroup(String groupname, ClientThread currentUser) {
+        Group group = new Group(groupname, currentUser);
         groups.add(group);
     }
 
@@ -95,31 +95,68 @@ public class Main {
         return groupnames;
     }
 
-    public String joinGroup(String groupname, String username) {
+    public String joinGroup(String groupname, ClientThread currentUser) {
         for (Group group : groups) {
             if (group.getGroupname().equals(groupname)) {
-                ArrayList<String> users = group.getGroupMembers();
-                for (String user : users) {
-                    if (user.equals(username)) {
+                ArrayList<ClientThread> users = group.getGroupMembers();
+                for (ClientThread user : users) {
+                    if (user.getUsername().equals(currentUser.getUsername())) {
                         return "-ERR Already in this group.";
                     }
                 }
-                group.addGroupMember(username);
+                group.addGroupMember(currentUser);
                 return "+OK Successfully joined group.";
             }
         }
         return "-ERR No such group exists.";
     }
 
-    public void sendGroupMessage(String groupname, String username, String message) {
+    public String leaveGroup(String groupname, ClientThread currentUser){
         for (Group group : groups) {
             if (group.getGroupname().equals(groupname)) {
-                ArrayList<String> usernames = group.getGroupMembers();
-                for (String userName : usernames) {
-                    if (userName.equals(username)) {
-                        for (ClientThread user : users) {
-                            if (!user.getUsername().equals(username)) {
-                                user.giveMessage("GRP " + username +"(to: "+groupname+"): " + message);
+                ArrayList<ClientThread> users = group.getGroupMembers();
+                for (ClientThread user : users) {
+                    if (user.getUsername().equals(currentUser.getUsername())) {
+                        group.removeGroupMember(currentUser);
+                        return "+OK Successfully left group.";
+                    }
+                }
+                return "-ERR You are not in this group.";
+
+            }
+        }
+        return "-ERR No such group exists.";
+    }
+
+    public String kickFromGroup(String groupname, String targetUsername, ClientThread currentUser){
+        for (Group group : groups) {
+            if (group.getGroupname().equals(groupname)) {
+                if(group.getGroupHost().equals(currentUser)) {
+                    ArrayList<ClientThread> users = group.getGroupMembers();
+                    for (ClientThread user : users) {
+                        if (user.getUsername().equals(targetUsername)) {
+                            group.removeGroupMember(user);
+                            return "+OK Successfully kicked " + targetUsername+" from " + groupname + ".";
+                        }
+                    }
+                    return "-ERR User is not in this group.";
+                }
+                return "-ERR You are not the group host.";
+
+            }
+        }
+        return "-ERR No such group exists.";
+    }
+
+    public void sendGroupMessage(String groupname, ClientThread currentUser, String message) {
+        for (Group group : groups) {
+            if (group.getGroupname().equals(groupname)) {
+                ArrayList<ClientThread> users = group.getGroupMembers();
+                for (ClientThread user : users) {
+                    if (user.getUsername().equals(currentUser.getUsername())) {
+                        for (ClientThread user2 : users) {
+                            if (!user2.getUsername().equals(currentUser.getUsername())) {
+                                user2.giveMessage("GRP " + currentUser.getUsername() +"(to: "+groupname+"): " + message);
                             }
                         }
                     }
