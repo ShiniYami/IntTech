@@ -68,6 +68,33 @@ public class ClientThread implements Runnable {
                 }
                 writer.println("USRS " + message);
                 writer.flush();
+            } else if (line.startsWith("CRTE ")){
+                String[] split = line.split(" ");
+                String groupname = split[1];
+
+                parent.createGroup(groupname, username);
+            } else if (line.startsWith("GRPS")){
+                ArrayList<String> groups = parent.getGroupNames();
+                String message = "";
+                for (String group : groups) {
+                    message = message + group + " ";
+                }
+                writer.println("GRPS " + message);
+                writer.flush();
+            } else if (line.startsWith("JOIN ")){
+                String[] split = line.split(" ");
+                String groupname = split[1];
+                String returnMessage = parent.joinGroup(groupname, username);
+                writer.println(returnMessage);
+                writer.flush();
+            } else if (line.startsWith("GRP")){
+                String[] split = line.split(" ");
+                String groupname = split[1];
+                String message = line.replace("GRP " +groupname + " ", "");
+                parent.sendGroupMessage(groupname, username, message);
+            } else if (line.startsWith("LEVE ")) {
+                String[] split = line.split(" ");
+                String groupname = split[1];
             } else if (line.startsWith("PONG")) {
                 pingPong = true;
                 startPingThread();
