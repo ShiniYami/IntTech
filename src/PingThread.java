@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.Socket;
+import java.net.SocketException;
 
 public class PingThread implements Runnable {
 
@@ -49,7 +50,11 @@ public class PingThread implements Runnable {
                 }
             }
 
-        } catch (IOException e) {
+        }
+        catch (SocketException ex){
+            parent.setConnected(false);
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
     }

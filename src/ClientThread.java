@@ -2,6 +2,7 @@
 
 import java.io.*;
 import java.net.Socket;
+import java.net.SocketException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -11,6 +12,7 @@ import java.util.Base64;
 public class ClientThread implements Runnable {
 
     private Socket socket;
+    private Thread pingThread;
     private String username;
     private Main parent;
     private boolean connected = false;
@@ -45,7 +47,18 @@ public class ClientThread implements Runnable {
             String line = "";
             try {
                 line = reader.readLine();
-            } catch (IOException e) {
+            }
+            catch (SocketException ex){
+                ex.printStackTrace();
+                try {
+                    socket.close();
+                    connected = false;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                connected = false;
+            }
+            catch (IOException e) {
                 e.printStackTrace();
             }
             if (line.startsWith("BCST")) {
@@ -199,8 +212,8 @@ public class ClientThread implements Runnable {
 
     public boolean startPingThread() {
         PingThread ping = new PingThread(this, socket);
-        Thread p1 = new Thread(ping);
-        p1.start();
+        pingThread = new Thread(ping);
+        pingThread.start();
         return true;
     }
 
