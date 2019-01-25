@@ -1,6 +1,7 @@
 
 
 import java.io.*;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.security.MessageDigest;
@@ -14,11 +15,15 @@ public class ClientThread implements Runnable {
     private Socket socket;
     private Thread pingThread;
     private String username;
-    private Main parent;
+    public Main parent;
+    private String myPrivateKey = "FJHSD*Yuf9ao9gnusdimfU*(DYHNFKISa;wo9etu";
+    private String myPublicKey = "";
     private boolean connected = false;
     private boolean pingPong = false;
     InputStream is = null;
     OutputStream os = null;
+
+    PrintWriter writer;
 
     ClientThread(Main parent, Socket socket) {
         super();
@@ -28,7 +33,7 @@ public class ClientThread implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("Hello fellow clients :)");
+
 
         try {
             is = socket.getInputStream();
@@ -41,7 +46,7 @@ public class ClientThread implements Runnable {
         if (connected) {
             pingPong = startPingThread();
         }
-        PrintWriter writer = new PrintWriter(os);
+        writer = new PrintWriter(os);
         while (connected) {
             BufferedReader reader = new BufferedReader(new InputStreamReader(is));
             String line = "";
@@ -49,30 +54,22 @@ public class ClientThread implements Runnable {
                 line = reader.readLine();
             }
             catch (SocketException ex){
-                ex.printStackTrace();
-                try {
-                    socket.close();
-                    connected = false;
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                connected = false;
+                connected = endConnection();
             }
             catch (IOException e) {
                 e.printStackTrace();
             }
             if (line.startsWith("BCST")) {
                 String message = line.replace("BCST ", "");
-                parent.broadcastMessage(username,message);
+                String returnMessage =  parent.broadcastMessage(username,message);
+                sendReturnMessage(returnMessage);
             } else if (line.startsWith("WISP")){
                 String message = line.replace("WISP ", "");
                 String[] splitMessage = message.split(" ");
                 String targetUsername = splitMessage[0];
                 message = message.replace(targetUsername + " ", "");
-                boolean succeeded = parent.whisperMessage(username,message, targetUsername);
-                if(!succeeded){
-                    sendErrorMessage(writer, "Username not found");
-                }
+                String returnMessage = parent.whisperMessage(username,message, targetUsername);
+                sendReturnMessage(returnMessage);
             } else if (line.startsWith("USRS")) {
                 ArrayList<String> usernames = parent.getUsernames();
                 String message = "";
@@ -85,7 +82,8 @@ public class ClientThread implements Runnable {
                 String[] split = line.split(" ");
                 String groupname = split[1];
 
-                parent.createGroup(groupname, this);
+                String returnMessage = parent.createGroup(groupname, this);
+                sendReturnMessage(returnMessage);
             } else if (line.startsWith("GRPS")){
                 ArrayList<String> groups = parent.getGroupNames();
                 String message = "";
@@ -98,34 +96,35 @@ public class ClientThread implements Runnable {
                 String[] split = line.split(" ");
                 String groupname = split[1];
                 String returnMessage = parent.joinGroup(groupname, this);
-                writer.println(returnMessage);
-                writer.flush();
+                sendReturnMessage(returnMessage);
             } else if (line.startsWith("GRP")){
                 String[] split = line.split(" ");
                 String groupname = split[1];
                 String message = line.replace("GRP " +groupname + " ", "");
-                parent.sendGroupMessage(groupname, this, message);
+                String returnMessage = parent.sendGroupMessage(groupname, this, message);
+                sendReturnMessage(returnMessage);
             } else if (line.startsWith("LEVE ")) {
                 String[] split = line.split(" ");
                 String groupname = split[1];
                 String returnMessage = parent.leaveGroup(groupname, this);
-                writer.println(returnMessage);
-                writer.flush();
+                sendReturnMessage(returnMessage);
             } else if (line.startsWith("KICK ")){
                 String[] split = line.split(" ");
                 String targetUsername = split[1];
                 String groupname = split[2];
                 String returnMessage = parent.kickFromGroup(groupname, targetUsername, this);
-                writer.println(returnMessage);
-                writer.flush();
-            } else if (line.startsWith("PONG")) {
+                sendReturnMessage(returnMessage);
+            }else if (line.startsWith("FILE ")){
+                String[] split = line.split(" ");
+                String fileName = split[1];
+                String fileTarget = split[2];
+                startGatheringSocket(fileName, fileTarget);
+            }
+            else if (line.startsWith("PONG")) {
                 pingPong = true;
                 startPingThread();
             } else if (line.startsWith("QUIT")) {
-                System.out.println(username + " disconnected.");
-                writer.println("+OK Goodbye");
-                writer.flush();
-                connected = false;
+                connected = endConnection();
             }
         }
         try {
@@ -136,8 +135,30 @@ public class ClientThread implements Runnable {
         parent.getUsers().remove(this);
     }
 
-    private void sendErrorMessage(PrintWriter writer, String message) {
-        writer.println("-ERR " + message);
+    private void startGatheringSocket(String filename, String fileTarget){
+        int port = parent.getNewPort();
+        ServerSocket serverSocket;
+        Socket transferSocket = null;
+        try {
+            serverSocket = new ServerSocket(port);
+            transferSocket = serverSocket.accept();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        FileTransferThread transferThread = new FileTransferThread(this, transferSocket, filename, fileTarget, port);
+        Thread t1 = new Thread(transferThread);
+        t1.start();
+    }
+
+    private boolean endConnection(){
+        System.out.println(username + " disconnected.");
+        writer.println("+SUC Goodbye " + username);
+        writer.flush();
+        return false;
+    }
+
+    public void sendReturnMessage(String message) {
+        writer.println(message);
         writer.flush();
     }
 
@@ -147,7 +168,6 @@ public class ClientThread implements Runnable {
         // Send message using the print writer.
         PrintWriter writer = new PrintWriter(os);
         writer.println("HELO");
-        System.out.println("HELO");
         // The flush method sends the messages from the print writer buffer to client.
         writer.flush();
 
@@ -161,7 +181,6 @@ public class ClientThread implements Runnable {
         }
 
         //start encoding
-        System.out.println(line);
         byte[] bytesOfMessage = new byte[0];
         if (line != null) {
             String response;
@@ -169,11 +188,10 @@ public class ClientThread implements Runnable {
             if(username.matches("^[a-zA-Z0-9_]*$")) {
                 if (parent.isUniqueUsername(username)) {
                     this.username = username;
-                    System.out.println(username);
+                    System.out.println(username + " connected.");
 
                     try {
                         bytesOfMessage = line.getBytes("UTF-8");
-                        System.out.println("Message size: " + bytesOfMessage + " bytes");
                     } catch (UnsupportedEncodingException e) {
                         e.printStackTrace();
                     }
@@ -201,7 +219,6 @@ public class ClientThread implements Runnable {
             }
 
             writer.println(response);
-            System.out.println(response);
             // The flush method sends the messages from the print writer buffer to client.
             writer.flush();
         }
@@ -238,7 +255,6 @@ public class ClientThread implements Runnable {
     }
 
     public void giveMessage(String message){
-        PrintWriter writer = new PrintWriter(os);
         writer.println(message);
         writer.flush();
     }

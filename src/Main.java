@@ -8,6 +8,7 @@ public class Main {
     private ServerSocket serverSocket;
     private ArrayList<ClientThread> users = new ArrayList<>();
     private ArrayList<Group> groups = new ArrayList<>();
+    private int portGen = 1338;
 
     public static void main(String[] args) {
         new Main().run();
@@ -19,9 +20,8 @@ public class Main {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println("Connected");
+        System.out.println("Server Online.");
         while (true) {
-            System.out.println("Looperino");
             // Wait for an incoming client-connection request (blocking).
             Socket socket = null;
             try {
@@ -29,7 +29,6 @@ public class Main {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            System.out.println("not here");
             // Your code here:
             // TODO: Start a message processing thread for each connecting client.
             ClientThread client = new ClientThread(this, socket);
@@ -42,27 +41,35 @@ public class Main {
 
     }
 
-    void broadcastMessage(String username, String message) {
+    public String broadcastMessage(String username, String message) {
+        boolean sent = false;
         for (ClientThread user : users) {
             if (user.getUsername() != null) {
                 if (!user.getUsername().equals(username)) {
                     user.giveMessage("BCST " + username + ": " + message);
+                    sent = true;
                 }
             }
         }
+        if(sent){
+            return "SUC " +username+ ": " + message;
+        }
+        else {
+            return "-ERR No other users available.";
+        }
     }
 
-    boolean whisperMessage(String username, String message, String targetUsername) {
+    public String whisperMessage(String username, String message, String targetUsername) {
         for (ClientThread user : users) {
             if (user.getUsername().equals(targetUsername)) {
                 user.giveMessage("WISP " + username + "(to: YOU): " + message);
-                return true;
+                return "SUC "+ username +" to " + targetUsername + ": " + message;
             }
         }
-        return false;
+        return "-ERR No such user exists.";
     }
 
-    boolean isUniqueUsername(String username) {
+    public boolean isUniqueUsername(String username) {
         boolean unique = true;
         for (ClientThread user : users) {
             if (user.getUsername() != null) {
@@ -74,12 +81,13 @@ public class Main {
         return unique;
     }
 
-    public void createGroup(String groupname, ClientThread currentUser) {
+    public String createGroup(String groupname, ClientThread currentUser) {
         Group group = new Group(groupname, currentUser);
         groups.add(group);
+        return "SUC Group '" + groupname +  "' created.";
     }
 
-    ArrayList<String> getUsernames() {
+    public ArrayList<String> getUsernames() {
         ArrayList<String> usernames = new ArrayList<>();
         for (ClientThread user : users) {
             usernames.add(user.getUsername());
@@ -105,7 +113,7 @@ public class Main {
                     }
                 }
                 group.addGroupMember(currentUser);
-                return "+OK Successfully joined group.";
+                return "SUC Successfully joined group.";
             }
         }
         return "-ERR No such group exists.";
@@ -118,7 +126,7 @@ public class Main {
                 for (ClientThread user : users) {
                     if (user.getUsername().equals(currentUser.getUsername())) {
                         group.removeGroupMember(currentUser);
-                        return "+OK Successfully left group.";
+                        return "SUC Successfully left group.";
                     }
                 }
                 return "-ERR You are not in this group.";
@@ -136,7 +144,8 @@ public class Main {
                     for (ClientThread user : users) {
                         if (user.getUsername().equals(targetUsername)) {
                             group.removeGroupMember(user);
-                            return "+OK Successfully kicked " + targetUsername+" from " + groupname + ".";
+                            user.giveMessage("SUC You got kicked from: " + groupname);
+                            return "SUC Successfully kicked " + targetUsername+" from " + groupname + ".";
                         }
                     }
                     return "-ERR User is not in this group.";
@@ -148,7 +157,8 @@ public class Main {
         return "-ERR No such group exists.";
     }
 
-    public void sendGroupMessage(String groupname, ClientThread currentUser, String message) {
+    public String sendGroupMessage(String groupname, ClientThread currentUser, String message) {
+        boolean sent = false;
         for (Group group : groups) {
             if (group.getGroupname().equals(groupname)) {
                 ArrayList<ClientThread> users = group.getGroupMembers();
@@ -157,13 +167,42 @@ public class Main {
                         for (ClientThread user2 : users) {
                             if (!user2.getUsername().equals(currentUser.getUsername())) {
                                 user2.giveMessage("GRP " + currentUser.getUsername() +"(to: "+groupname+"): " + message);
+                                sent = true;
                             }
+                        }
+                        if(sent){
+                            return "SUC " +currentUser.getUsername()+ " to " + groupname + ": " + message;
+                        }
+                        else{
+                            return "-ERR No user got your message.";
                         }
                     }
                 }
+                return "-ERR You are not in this group.";
             }
         }
+        return "-ERR No such group exists.";
     }
+
+    public String sendPort(int port, String targetUser, String filename) {
+        for (ClientThread user: users) {
+            if(user.getUsername().equals(targetUser)){
+                user.giveMessage("RFILE "+ filename + port);
+                return "SUC File successfully sent.";
+            }
+        }
+        return "-ERR No such user exists.";
+    }
+
+    synchronized int getNewPort(){
+        int port = portGen;
+        portGen++;
+        if(portGen >= 9999){
+            portGen = 1338;
+        }
+        return port;
+    }
+
 
     public ArrayList<ClientThread> getUsers() {
         return users;
