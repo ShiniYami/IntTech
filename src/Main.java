@@ -221,9 +221,4 @@ public class Main {
     public void removeUser(ClientThread user){
         users.remove(user);
     }
-
-
-    public ArrayList<ClientThread> getUsers() {
-        return users;
-    }
 }
