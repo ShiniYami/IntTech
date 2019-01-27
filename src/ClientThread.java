@@ -17,7 +17,7 @@ public class ClientThread implements Runnable {
     private boolean pingPong = false;
     InputStream is = null;
     OutputStream os = null;
-    private String publicKey;
+    private byte[] publicKey;
 
     PrintWriter writer;
 
@@ -58,13 +58,6 @@ public class ClientThread implements Runnable {
             if (line.startsWith("BCST")) {
                 String message = line.replace("BCST ", "");
                 String returnMessage =  parent.broadcastMessage(username,message);
-                sendReturnMessage(returnMessage);
-            } else if (line.startsWith("WISP")){
-                String message = line.replace("WISP ", "");
-                String[] splitMessage = message.split(" ");
-                String targetUsername = splitMessage[0];
-                message = message.replace(targetUsername + " ", "");
-                String returnMessage = parent.whisperMessage(username,message, targetUsername);
                 sendReturnMessage(returnMessage);
             } else if (line.startsWith("USRS")) {
                 ArrayList<String> usernames = parent.getUsernames();
@@ -115,14 +108,21 @@ public class ClientThread implements Runnable {
                 String fileName = split[1];
                 String fileTarget = split[2];
                 startGatheringSocket(fileName, fileTarget);
-            }else if(line.startsWith("KEY ")){
-                String[] split = line.split(" ");
-                publicKey = split[1];
+            }else if(line.startsWith("KEYP")){
+                KeyTransferThread keyTransferThread = new KeyTransferThread(this, "receive");
+                Thread t1 = new Thread(keyTransferThread);
+                t1.start();
             }else if(line.startsWith("ASK ")){
                 String[] split = line.split(" ");
                 String targetName = split[1];
-                String targetKey = parent.getPublicKey(targetName);
-                sendReturnMessage(targetKey);
+                byte[] targetKey = parent.getPublicKey(targetName);
+                if(targetKey == null){
+                    sendReturnMessage("-ERR This user does not exist.");
+                }else {
+                    KeyTransferThread keyTransferThread = new KeyTransferThread(this, "send", targetKey, targetName);
+                    Thread t1 = new Thread(keyTransferThread);
+                    t1.start();
+                }
             }
             else if (line.startsWith("PONG")) {
                 pingPong = true;
@@ -232,8 +232,12 @@ public class ClientThread implements Runnable {
         return connected;
     }
 
-    public String getPublicKey(){
+    public byte[] getPublicKey(){
         return publicKey;
+    }
+
+    public void setPublicKey(byte[] publicKey){
+        this.publicKey = publicKey;
     }
 
     public boolean startPingThread() {

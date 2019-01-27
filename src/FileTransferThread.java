@@ -36,7 +36,7 @@ public class FileTransferThread implements Runnable {
             init = false;
         }
         port2 = parent.parent.getNewPort();
-        parent.parent.sendPort(port2, filetarget, filename);
+        parent.parent.sendFilePort(port2, filetarget, filename);
         Socket socket2 = null;
         try {
             ServerSocket serverSocket = new ServerSocket(port2);

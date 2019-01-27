@@ -29,8 +29,6 @@ public class Main {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            // Your code here:
-            // TODO: Start a message processing thread for each connecting client.
 
             ClientThread client = new ClientThread(this, socket);
             users.add(client);
@@ -57,16 +55,6 @@ public class Main {
         else {
             return "-ERR No other users available.";
         }
-    }
-
-    public String whisperMessage(String username, String message, String targetUsername) {
-        for (ClientThread user : users) {
-            if (user.getUsername().equals(targetUsername)) {
-                user.giveMessage("WISP " + username + " " + message);
-                return "SUC sent whisper to " + targetUsername;
-            }
-        }
-        return "-ERR No such user exists.";
     }
 
     public boolean isUniqueUsername(String username) {
@@ -184,7 +172,7 @@ public class Main {
         return "-ERR No such group exists.";
     }
 
-    public String sendPort(int port, String targetUser, String filename) {
+    public String sendFilePort(int port, String targetUser, String filename) {
         for (ClientThread user: users) {
             if(user.getUsername().equals(targetUser)){
                 user.giveMessage("RFILE "+ filename + " " + port);
@@ -192,6 +180,14 @@ public class Main {
             }
         }
         return "-ERR No such user exists.";
+    }
+
+    public void sendWhisperPort(int port, String targetUser){
+        for (ClientThread user: users) {
+            if(user.getUsername().equals(targetUser)){
+                user.giveMessage("WISPP " + port);
+            }
+        }
     }
 
     synchronized int getNewPort(){
@@ -203,15 +199,15 @@ public class Main {
         return port;
     }
 
-    public String getPublicKey(String name){
+    public byte[] getPublicKey(String name){
+
         for (ClientThread user: users) {
             if(user.getUsername().equals(name)){
-                return "KEY " + user.getPublicKey();
+                return user.getPublicKey();
             }
         }
 
-
-        return "-ERR Key not found.";
+        return null;
     }
 
     public void removeUser(ClientThread user){
