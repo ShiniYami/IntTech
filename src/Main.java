@@ -71,6 +71,11 @@ public class Main {
 
     public String createGroup(String groupname, ClientThread currentUser) {
         Group group = new Group(groupname, currentUser);
+        for (Group g:groups) {
+            if(g.getGroupname().equals(group.getGroupname())){
+                return "-ERR Group '" + groupname + "' already exists.";
+            }
+        }
         groups.add(group);
         return "SUC Group '" + groupname +  "' created.";
     }
@@ -182,12 +187,15 @@ public class Main {
         return "-ERR No such user exists.";
     }
 
-    public void sendWhisperPort(int port, String targetUser){
+    public String sendWhisperPort(int port, String targetUser){
         for (ClientThread user: users) {
             if(user.getUsername().equals(targetUser)){
                 user.giveMessage("WISPP " + port);
+                return "SUC Whisper connected";
             }
+
         }
+        return "-ERR No such user exists";
     }
 
     synchronized int getNewPort(){

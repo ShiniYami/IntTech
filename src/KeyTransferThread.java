@@ -61,7 +61,7 @@ public class KeyTransferThread implements Runnable {
             try {
                 if (in != null) {
                     int sPort = parent.parent.getNewPort();
-                    parent.parent.sendWhisperPort(sPort, messageTarget);
+                    parent.sendReturnMessage(parent.parent.sendWhisperPort(sPort, messageTarget));
                     ServerSocket sSocket = null;
                     try {
                         sSocket = new ServerSocket(sPort);
@@ -79,6 +79,7 @@ public class KeyTransferThread implements Runnable {
                     while (in.available() != 0) {
                         if (in.read(whisperMessage) > 0) {
                             out.write(whisperMessage);
+                            parent.sendReturnMessage("SUC Whisper sent.");
                         }
                     }
                 }
