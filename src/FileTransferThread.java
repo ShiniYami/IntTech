@@ -10,21 +10,20 @@ public class FileTransferThread implements Runnable {
     private ClientThread parent;
     private String filename;
     private String filetarget;
-    private int port;
-    private byte[] bytes;
+    private int port2;
+    private byte[] bytes = new byte[1024];
 
-    FileTransferThread(ClientThread parent, Socket socket, String filename, String filetarget, int port) {
+    FileTransferThread(ClientThread parent, Socket socket, String filename, String filetarget) {
         super();
         this.socket = socket;
         this.parent = parent;
         this.filename = filename;
         this.filetarget = filetarget;
-        this.port = port;
     }
 
     @Override
     public void run() {
-        parent.sendReturnMessage("SFILE " + filename + " " + port);
+
 
         InputStream is = null;
         OutputStream os = null;
@@ -36,28 +35,18 @@ public class FileTransferThread implements Runnable {
             e.printStackTrace();
             init = false;
         }
-
-        if(init) {
-            try {
-                bytes = is.readAllBytes();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        init = true;
-
-        port = parent.parent.getNewPort();
-        parent.parent.sendPort(port, filetarget, filename);
+        port2 = parent.parent.getNewPort();
+        parent.parent.sendPort(port2, filetarget, filename);
         Socket socket2 = null;
         try {
-            ServerSocket serverSocket = new ServerSocket(port);
+            ServerSocket serverSocket = new ServerSocket(port2);
             socket2 = serverSocket.accept();
         } catch (IOException e) {
             e.printStackTrace();
             init = false;
         }
 
-        if(init) {
+        if (init) {
             try {
                 os = socket2.getOutputStream();
             } catch (IOException e) {
@@ -66,12 +55,26 @@ public class FileTransferThread implements Runnable {
             }
         }
 
-        if(init){
+        if (init) {
             try {
-                os.write(bytes);
+                while (is.available() != 0) {
+                    if (is.read(bytes) > 0) {
+                        os.write(bytes);
+                    }
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
         }
+        try {
+            is.close();
+            os.close();
+            socket.close();
+            socket2.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 }

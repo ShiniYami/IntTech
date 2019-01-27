@@ -1,11 +1,8 @@
-
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.security.*;
 import java.util.ArrayList;
 import java.util.Base64;
 
@@ -16,12 +13,11 @@ public class ClientThread implements Runnable {
     private Thread pingThread;
     private String username;
     public Main parent;
-    private String myPrivateKey = "FJHSD*Yuf9ao9gnusdimfU*(DYHNFKISa;wo9etu";
-    private String myPublicKey = "";
     private boolean connected = false;
     private boolean pingPong = false;
     InputStream is = null;
     OutputStream os = null;
+    private String publicKey;
 
     PrintWriter writer;
 
@@ -119,6 +115,14 @@ public class ClientThread implements Runnable {
                 String fileName = split[1];
                 String fileTarget = split[2];
                 startGatheringSocket(fileName, fileTarget);
+            }else if(line.startsWith("KEY ")){
+                String[] split = line.split(" ");
+                publicKey = split[1];
+            }else if(line.startsWith("ASK ")){
+                String[] split = line.split(" ");
+                String targetName = split[1];
+                String targetKey = parent.getPublicKey(targetName);
+                sendReturnMessage(targetKey);
             }
             else if (line.startsWith("PONG")) {
                 pingPong = true;
@@ -132,7 +136,7 @@ public class ClientThread implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        parent.getUsers().remove(this);
+        parent.removeUser(this);
     }
 
     private void startGatheringSocket(String filename, String fileTarget){
@@ -141,11 +145,12 @@ public class ClientThread implements Runnable {
         Socket transferSocket = null;
         try {
             serverSocket = new ServerSocket(port);
+            sendReturnMessage("SFILE " + filename + " " + port);
             transferSocket = serverSocket.accept();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        FileTransferThread transferThread = new FileTransferThread(this, transferSocket, filename, fileTarget, port);
+        FileTransferThread transferThread = new FileTransferThread(this, transferSocket, filename, fileTarget);
         Thread t1 = new Thread(transferThread);
         t1.start();
     }
@@ -227,6 +232,10 @@ public class ClientThread implements Runnable {
         return connected;
     }
 
+    public String getPublicKey(){
+        return publicKey;
+    }
+
     public boolean startPingThread() {
         PingThread ping = new PingThread(this, socket);
         pingThread = new Thread(ping);
@@ -258,4 +267,6 @@ public class ClientThread implements Runnable {
         writer.println(message);
         writer.flush();
     }
+
+
 }

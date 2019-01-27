@@ -31,11 +31,11 @@ public class Main {
             }
             // Your code here:
             // TODO: Start a message processing thread for each connecting client.
+
             ClientThread client = new ClientThread(this, socket);
             users.add(client);
             Thread t1 = new Thread(client);
             t1.start();
-            // TODO: Start a ping thread for each connecting client.
         }
 
 
@@ -62,8 +62,8 @@ public class Main {
     public String whisperMessage(String username, String message, String targetUsername) {
         for (ClientThread user : users) {
             if (user.getUsername().equals(targetUsername)) {
-                user.giveMessage("WISP " + username + "(to: YOU): " + message);
-                return "SUC "+ username +" to " + targetUsername + ": " + message;
+                user.giveMessage("WISP " + username + " " + message);
+                return "SUC sent whisper to " + targetUsername;
             }
         }
         return "-ERR No such user exists.";
@@ -187,7 +187,7 @@ public class Main {
     public String sendPort(int port, String targetUser, String filename) {
         for (ClientThread user: users) {
             if(user.getUsername().equals(targetUser)){
-                user.giveMessage("RFILE "+ filename + port);
+                user.giveMessage("RFILE "+ filename + " " + port);
                 return "SUC File successfully sent.";
             }
         }
@@ -201,6 +201,21 @@ public class Main {
             portGen = 1338;
         }
         return port;
+    }
+
+    public String getPublicKey(String name){
+        for (ClientThread user: users) {
+            if(user.getUsername().equals(name)){
+                return "KEY " + user.getPublicKey();
+            }
+        }
+
+
+        return "-ERR Key not found.";
+    }
+
+    public void removeUser(ClientThread user){
+        users.remove(user);
     }
 
 
